@@ -44,6 +44,12 @@ function renderAt(path: string) {
 
 beforeEach(() => {
   mocks.session = null;
+  // Screens fetch from /api on mount; give them an empty world.
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json([]));
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 test("unauthenticated visit to an app route lands on the login screen", async () => {
@@ -54,17 +60,17 @@ test("unauthenticated visit to an app route lands on the login screen", async ()
 test("root redirects signed-in users to the collections screen", async () => {
   mocks.session = fakeSession();
   renderAt("/");
-  expect(await screen.findByText(/Collections — coming soon/)).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Collections" })).toBeInTheDocument();
 });
 
 test("signed-in visit to /login bounces to collections", async () => {
   mocks.session = fakeSession();
   renderAt("/login");
-  expect(await screen.findByText(/Collections — coming soon/)).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Collections" })).toBeInTheDocument();
 });
 
 test("collection detail route renders when signed in", async () => {
   mocks.session = fakeSession();
   renderAt("/collections/1");
-  expect(await screen.findByText(/CollectionDetail — coming soon/)).toBeInTheDocument();
+  expect(await screen.findByText("Manage tags")).toBeInTheDocument();
 });
