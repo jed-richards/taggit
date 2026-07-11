@@ -1,0 +1,74 @@
+@import "@fontsource-variable/inter";
+@import "tailwindcss";
+
+/* Design tokens — from the taggit design prototype (feat/claude-design). */
+:root {
+  --accent: #c8742a;
+  --accent-soft: #f5e4d0;
+  --accent-on: #ffffff;
+
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7f6f3;
+  --tile-fallback: #f2f1ed;
+
+  --fg: #1a1917;
+  --fg-muted: #6b665e;
+  --fg-subtle: #9a968d;
+
+  --border: #d9d6cf;
+  --border-soft: #e9e6df;
+
+  --tag-bg: #f0ede5;
+  --tag-fg: #3c3a35;
+
+  --danger: #c63e3e;
+
+  font-family:
+    "Inter Variable",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111110;
+    --surface: #1a1917;
+    --surface-2: #222220;
+    --tile-fallback: #2a2926;
+    --fg: #f0ede5;
+    --fg-muted: #9a968d;
+    --fg-subtle: #6b665e;
+    --border: #3c3a35;
+    --border-soft: #2e2c28;
+    --tag-bg: #2a2926;
+    --tag-fg: #d9d6cf;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
