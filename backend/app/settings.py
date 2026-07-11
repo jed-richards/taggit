@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = ""
     r2_bucket: str = ""
     r2_public_base_url: str = ""
+    # Optional S3 endpoint override (MinIO / local stub in tests). Empty means
+    # the real R2 endpoint derived from the account id.
+    r2_endpoint_url: str = ""
 
 
 @lru_cache
