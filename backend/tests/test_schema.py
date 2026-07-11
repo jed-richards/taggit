@@ -31,7 +31,10 @@ def test_same_tag_name_allowed_across_collections(db):
     b = make_collection(db, user, "B")
     db.add_all([Tag(collection_id=a.id, name="red"), Tag(collection_id=b.id, name="red")])
     db.flush()
-    assert db.scalars(select(Tag).where(Tag.name == "red")).all().__len__() == 2
+    found = db.scalars(
+        select(Tag).where(Tag.name == "red", Tag.collection_id.in_([a.id, b.id]))
+    ).all()
+    assert len(found) == 2
 
 
 def test_item_tag_composite_pk_rejects_duplicates(db):
@@ -61,7 +64,7 @@ def test_deleting_tag_cascades_associations_but_keeps_items(db):
     db.delete(tag)
     db.flush()
 
-    assert db.scalars(select(ItemTag)).all() == []
+    assert db.scalars(select(ItemTag).where(ItemTag.item_id == item.id)).all() == []
     assert db.get(Item, item.id) is not None
 
 
@@ -74,12 +77,19 @@ def test_deleting_collection_cascades_everything(db):
     db.flush()
     db.add(ItemTag(item_id=item.id, tag_id=tag.id))
     db.flush()
+    item_id, tag_id, coll_id = item.id, tag.id, coll.id
 
     db.delete(coll)
     db.flush()
 
-    for model in (Item, Tag, ItemTag, CollectionMember):
-        assert db.scalars(select(model)).all() == []
+    assert db.scalars(select(Item).where(Item.collection_id == coll_id)).all() == []
+    assert db.scalars(select(Tag).where(Tag.collection_id == coll_id)).all() == []
+    assert db.scalars(select(ItemTag).where(ItemTag.item_id == item_id)).all() == []
+    assert db.scalars(select(ItemTag).where(ItemTag.tag_id == tag_id)).all() == []
+    assert (
+        db.scalars(select(CollectionMember).where(CollectionMember.collection_id == coll_id)).all()
+        == []
+    )
 
 
 def test_member_unique_per_collection(db):
