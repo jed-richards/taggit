@@ -71,6 +71,7 @@ class Item(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     collection_id: Mapped[int] = mapped_column(ForeignKey("collections.id", ondelete="CASCADE"))
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     name: Mapped[str] = mapped_column(String(255))
     # URL into object storage (Cloudflare R2) — never binary data.
     image_url: Mapped[str | None] = mapped_column(Text)
@@ -81,6 +82,7 @@ class Item(Base):
     )
 
     collection: Mapped[Collection] = relationship(back_populates="items")
+    creator: Mapped[User | None] = relationship()
     tags: Mapped[list["Tag"]] = relationship(
         secondary="item_tags", back_populates="items", passive_deletes=True
     )

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import me
+from app.routers import collections, items, me, tags, uploads
 
 
 def create_app() -> FastAPI:
@@ -11,6 +11,10 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(me.router)
+    app.include_router(collections.router)
+    app.include_router(tags.router)
+    app.include_router(items.router)
+    app.include_router(uploads.router)
 
     return app
 

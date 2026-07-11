@@ -63,8 +63,8 @@ def client(engine):
 
 
 @pytest.fixture
-def auth_client(engine):
-    """(client, user): TestClient with get_current_user overridden to a fresh user.
+def make_auth_client(engine):
+    """Factory: fresh user + TestClient with get_current_user overridden to it.
 
     Reusable by all API tests — no real Supabase needed.
     """
@@ -73,10 +73,23 @@ def auth_client(engine):
     from app.auth import get_current_user
     from app.main import create_app
 
-    with sessionmaker(bind=engine, expire_on_commit=False)() as session:
-        user = make_user(session, email=f"{uuid.uuid4().hex[:8]}@test.example")
-        session.commit()
+    def _make(display_name: str | None = None):
+        with sessionmaker(bind=engine, expire_on_commit=False)() as session:
+            user = User(
+                id=uuid.uuid4(),
+                email=f"{uuid.uuid4().hex[:8]}@test.example",
+                display_name=display_name,
+            )
+            session.add(user)
+            session.commit()
+        app = create_app()
+        app.dependency_overrides[get_current_user] = lambda: user
+        return TestClient(app), user
 
-    app = create_app()
-    app.dependency_overrides[get_current_user] = lambda: user
-    return TestClient(app), user
+    return _make
+
+
+@pytest.fixture
+def auth_client(make_auth_client):
+    """(client, user): a single pre-made authenticated client."""
+    return make_auth_client()
