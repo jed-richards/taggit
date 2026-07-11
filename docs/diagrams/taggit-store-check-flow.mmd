@@ -1,0 +1,17 @@
+flowchart TD
+    A([Open App]) --> B[Select Collection\ne.g. Snoopy Mugs]
+    B --> C{Filter by tags?}
+
+    C -->|Yes| D[Select one or more tags\ne.g. christmas, red]
+    C -->|No| E[View all items in collection]
+
+    D --> F[View filtered items]
+
+    F --> G{Item appears\nin results?}
+    E --> G
+
+    G -->|Yes| H[Already own it]
+    G -->|No| I[Not in collection]
+
+    H --> J([Don't buy it])
+    I --> K([Buy it!])
