@@ -1,0 +1,34 @@
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant App as React App
+    participant API as Taggit API
+    participant Store as Image Storage
+    participant DB as Database
+
+    U->>App: Take photo of item
+    App->>Store: Upload image
+    activate Store
+
+    alt Upload succeeds
+        Store-->>App: image_url
+        deactivate Store
+        App-->>U: Show image preview\n+ tag entry form
+        U->>App: Enter name, notes,\nand select tags
+        App->>API: POST /collections/:id/items\n{ name, image_url, notes, tag_ids }
+        activate API
+        API->>DB: INSERT item
+        activate DB
+        DB-->>API: item_id
+        deactivate DB
+        API->>DB: INSERT item_tags (item_id, tag_id) x N
+        activate DB
+        DB-->>API: ok
+        deactivate DB
+        API-->>App: 201 Created { item }
+        deactivate API
+        App-->>U: Item added to collection
+    else Upload fails
+        Store-->>App: Error
+        App-->>U: Show error — retry
+    end

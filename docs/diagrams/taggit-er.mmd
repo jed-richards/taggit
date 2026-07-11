@@ -1,0 +1,50 @@
+erDiagram
+    USER {
+        uuid id PK
+        string email UK
+        string display_name
+        datetime created_at
+    }
+    COLLECTION {
+        int id PK
+        uuid owner_id FK
+        string name
+        string description
+        datetime created_at
+        datetime updated_at
+    }
+    COLLECTION_MEMBER {
+        int id PK
+        int collection_id FK
+        uuid user_id FK
+        string role
+        datetime joined_at
+    }
+    ITEM {
+        int id PK
+        int collection_id FK
+        string name
+        string image_url
+        string notes
+        datetime created_at
+        datetime updated_at
+    }
+    TAG {
+        int id PK
+        int collection_id FK
+        string name
+        datetime created_at
+    }
+    ITEM_TAG {
+        int id PK
+        int item_id FK
+        int tag_id FK
+    }
+
+    USER ||--o{ COLLECTION : "owns"
+    USER ||--o{ COLLECTION_MEMBER : "member of"
+    COLLECTION ||--o{ COLLECTION_MEMBER : "has members"
+    COLLECTION ||--o{ ITEM : "contains"
+    COLLECTION ||--o{ TAG : "defines"
+    ITEM ||--o{ ITEM_TAG : "labeled with"
+    TAG ||--o{ ITEM_TAG : "applied to"
