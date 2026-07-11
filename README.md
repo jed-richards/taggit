@@ -1,39 +1,78 @@
 # taggit
 
-A simple collection sorting application to learn SvelteKit and make an
-application for my fiance's mom.
+A personal collection-tracking app: photograph physical items, organize them
+into collections, and tag them so you can filter a collection at the point of
+purchase — "is this Snoopy mug already owned?"
+
+Built for one very important user (my fiancée's mom), designed to be installable
+on a phone as a PWA.
+
+## Architecture
+
+One monolith, one deployment:
+
+| Layer | Technology |
+|---|---|
+| Frontend | React (TypeScript) + Vite + Tailwind CSS v4 + TanStack Query |
+| Backend | FastAPI (Python) + SQLAlchemy 2.0 + Alembic |
+| Database | PostgreSQL |
+| Image storage | Cloudflare R2 (presigned direct-from-client uploads) |
+| Auth | Supabase Auth (Google OAuth) — identity only; the API verifies JWTs itself |
+
+Full design: [docs/taggit-lld.md](docs/taggit-lld.md) ·
+Build plan: [docs/roadmap.md](docs/roadmap.md)
+
+## Repository layout
+
+```
+taggit/
+├── frontend/   # Vite + React app
+├── backend/    # FastAPI service (serves the built frontend in production)
+└── docs/       # design doc, diagrams, roadmap, setup guides
+```
 
 ## Dev setup
 
-1. Install dependencies
+### Backend
 
-```bash
+Requires [uv](https://docs.astral.sh/uv/) and a local PostgreSQL
+(`docker compose up -d db`, or any Postgres 16 with a `taggit` database).
+
+```sh
+cd backend
+cp .env.example .env      # adjust DATABASE_URL if needed
+uv sync
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload
+```
+
+Tests and lint:
+
+```sh
+uv run pytest
+uv run ruff check .
+```
+
+### Frontend
+
+Requires Node 22+ and pnpm.
+
+```sh
+cd frontend
+cp .env.example .env      # Supabase URL + anon key
 pnpm install
+pnpm dev                  # proxies /api to http://localhost:8000
 ```
 
-2. Start dev server
+Tests and lint:
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+pnpm test
+pnpm lint
+pnpm exec tsc --noEmit
 ```
 
-## Building
+## One-time service setup
 
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an
-> [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
-
-## Resources
-
-- [Supabase](https://supabase.com/dashboard/project/yppqtxyqhoddbmwoaqau)
-- [TailwindCSS](https://tailwindcss.com/)
+- Supabase project + Google OAuth: [docs/auth-setup.md](docs/auth-setup.md)
+- Cloudflare R2 bucket + CORS: [docs/r2-setup.md](docs/r2-setup.md)
