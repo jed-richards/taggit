@@ -1,2 +1,10 @@
-# SQLAlchemy models register on Base.metadata when imported here.
-# The schema lands with the database-schema issue (#7).
+from app.models.models import (
+    Collection,
+    CollectionMember,
+    Item,
+    ItemTag,
+    Tag,
+    User,
+)
+
+__all__ = ["Collection", "CollectionMember", "Item", "ItemTag", "Tag", "User"]
