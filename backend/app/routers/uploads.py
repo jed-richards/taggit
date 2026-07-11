@@ -21,8 +21,7 @@ ALLOWED_CONTENT_TYPES = {
 def make_s3_client(settings: Settings):
     """Separated for test stubbing."""
     endpoint = (
-        settings.r2_endpoint_url
-        or f"https://{settings.r2_account_id}.r2.cloudflarestorage.com"
+        settings.r2_endpoint_url or f"https://{settings.r2_account_id}.r2.cloudflarestorage.com"
     )
     return boto3.client(
         "s3",
