@@ -8,6 +8,11 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/taggit"
 
+    # Directory with the built frontend (frontend/dist). Served with an SPA
+    # fallback when it exists — the production image sets this; dev leaves it
+    # unset and runs vite separately.
+    static_dir: str = ""
+
     # Supabase Auth (identity only) — see docs/auth-setup.md
     supabase_url: str = ""
     supabase_jwt_secret: str = ""
