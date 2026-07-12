@@ -38,6 +38,12 @@ taggit/
 Requires [uv](https://docs.astral.sh/uv/) and a local PostgreSQL
 (`docker compose up -d db`, or any Postgres 16 with a `taggit` database).
 
+Image uploads need R2 credentials (see [docs/r2-setup.md](docs/r2-setup.md)) — or,
+for local dev without a real Cloudflare account, run the bundled MinIO
+stand-in instead: `docker compose up -d minio minio-init`, then set the
+`R2_*` vars in `backend/.env` to the MinIO block commented in
+`backend/.env.example`. Production keeps using real R2.
+
 ```sh
 cd backend
 cp .env.example .env      # adjust DATABASE_URL if needed

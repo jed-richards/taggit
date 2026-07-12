@@ -1,6 +1,7 @@
 import uuid
 
 import boto3
+from botocore.config import Config
 from fastapi import APIRouter, HTTPException
 
 from app.routers.deps import Membership
@@ -29,6 +30,9 @@ def make_s3_client(settings: Settings):
         aws_access_key_id=settings.r2_access_key_id,
         aws_secret_access_key=settings.r2_secret_access_key,
         region_name="auto",
+        # Path-style so this works against MinIO locally (bucket.localhost
+        # doesn't resolve); R2 supports path-style equally well.
+        config=Config(s3={"addressing_style": "path"}),
     )
 
 

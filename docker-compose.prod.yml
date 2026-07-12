@@ -9,7 +9,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/taggit
     env_file:
-      - backend/.env # Supabase + R2 secrets
+      - backend/.env.prod # Supabase + real R2 secrets (backend/.env is MinIO, local-dev only)
     depends_on:
       db:
         condition: service_healthy
