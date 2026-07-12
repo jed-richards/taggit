@@ -50,6 +50,30 @@ services:
       mc anonymous set download local/taggit-images
       "
 
+  # Opt-in: the whole app in containers, not just its dependencies. Normal
+  # host-run dev (uv run uvicorn / pnpm dev) doesn't need these — bring them
+  # up explicitly with:  docker compose --profile full up -d --build
+  backend:
+    profiles: ["full"]
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/taggit
+    env_file:
+      - backend/.env # MinIO-configured, same as host-run dev
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  frontend:
+    profiles: ["full"]
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
 volumes:
   pgdata:
   miniodata:
