@@ -1,0 +1,44 @@
+# Self-hosted deploy (e.g. a mini PC reachable over Tailscale): split
+# frontend/backend containers. Nginx in the frontend container proxies
+# /api/* to the backend container internally, so the browser only ever
+# sees one origin — no CORS needed.
+#
+#   docker compose -f docker-compose.selfhost.yml up -d --build
+#
+# Frontend on http://localhost:8080. Install Tailscale on the host machine
+# itself (not in Docker) and it becomes reachable at the host's Tailscale
+# MagicDNS name from any device on your tailnet — nothing else to expose.
+services:
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/taggit
+    env_file:
+      - backend/.env.prod # Supabase + real R2 secrets
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: taggit
+    volumes:
+      - pgdata_selfhost:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata_selfhost:

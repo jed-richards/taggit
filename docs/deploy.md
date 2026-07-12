@@ -1,76 +1,71 @@
 # Deployment
 
-Taggit ships as a **single container**: FastAPI serves both the API (under
-`/api`) and the built React app (SPA fallback for client routes). One origin,
-no CORS, one thing to run. Postgres is the only external dependency besides
-the managed services (Supabase Auth, Cloudflare R2).
+Taggit runs as two containers: an nginx frontend (serves the built React app
+and reverse-proxies `/api/*` to the backend, so the browser only ever sees
+one origin — no CORS) and a FastAPI backend. Postgres is the only external
+dependency besides the managed services (Supabase Auth, Cloudflare R2).
 
 ## Architecture
 
 ```
-browser ── https ──> app container (uvicorn)
-                       ├── /api/*   FastAPI routers
-                       ├── /*       static frontend (STATIC_DIR) + SPA fallback
-                       └── Postgres (DATABASE_URL)
+browser ── https ──> frontend container (nginx)
+                       ├── /*       static frontend build
+                       └── /api/*   proxied to the backend container
+                                     └── Postgres (DATABASE_URL)
 photos:  browser ──presigned PUT──> Cloudflare R2   (never through the app)
 auth:    browser ──OAuth──> Supabase; app verifies the JWT itself
 ```
 
-Migrations run on container boot (`alembic upgrade head`) — fine for a
-single-instance personal app; move to a release phase if instances ever scale.
+Migrations run on backend container boot (`alembic upgrade head`) — fine for
+a single-instance personal app.
 
-## Hosting recommendation
+## Hosting: self-hosted (mini PC + Tailscale)
 
-**Fly.io** (implemented here via `fly.toml` + the deploy workflow):
-scale-to-zero machines, managed Postgres, ~free at this traffic level.
-Alternatives considered: **Railway** (simplest dashboard-driven DX, slightly
-pricier idle) and a **VPS + compose** (cheapest long-run, most hands-on —
-`docker-compose.prod.yml` works as-is there). Any of the three runs the same
-container; switching later is cheap.
+Runs on a machine you own — a home server, mini PC, old laptop — reachable
+only over your private [Tailscale](https://tailscale.com/) network. No cloud
+hosting bill.
 
-## One-time Fly.io setup
-
-1. `brew install flyctl` (or the installer), `fly auth signup`
-2. From the repo root: `fly launch --no-deploy` — accept the existing
-   `fly.toml`, pick a unique app name (update `app = "…"` if "taggit" is
-   taken) and region
-3. Postgres: `fly postgres create` (dev single-node is fine) then
-   `fly postgres attach <pg-app-name>` — this sets `DATABASE_URL` on the app.
-   Note: Fly's `DATABASE_URL` is `postgres://…`; set the SQLAlchemy form
-   explicitly: `fly secrets set DATABASE_URL="postgresql+psycopg://<same creds>"`
-4. Secrets (values from [auth-setup](auth-setup.md) / [r2-setup](r2-setup.md)):
-
+1. Install Tailscale **on the host machine itself** (not in Docker) and join
+   it to your tailnet. Note the MagicDNS name it's assigned
+   (`https://login.tailscale.com/admin/machines`).
+2. Fill `backend/.env.prod` with real Supabase + R2 values (see
+   [auth-setup](auth-setup.md) / [r2-setup](r2-setup.md)) — copy the shape of
+   `backend/.env.example`. This file is gitignored; it never leaves the
+   machine you put it on.
+3. Update your R2 bucket's CORS policy (`docs/r2-setup.md`) to allow the
+   origin the frontend will actually be served from — your Tailscale
+   MagicDNS name on port 8080 (e.g. `http://my-mini-pc.tailXXXX.ts.net:8080`),
+   not just `localhost:5173`.
+4. From the repo root on the host machine:
    ```sh
-   fly secrets set \
-     SUPABASE_URL=… SUPABASE_JWT_SECRET=… \
-     R2_ACCOUNT_ID=… R2_ACCESS_KEY_ID=… R2_SECRET_ACCESS_KEY=… \
-     R2_BUCKET=taggit-images R2_PUBLIC_BASE_URL=…
+   docker compose -f docker-compose.selfhost.yml up -d --build
    ```
-
-5. First deploy: `fly deploy`
-6. Point Supabase's Site URL / redirect URLs and the R2 CORS policy at the
-   production URL (`https://<app>.fly.dev` or your custom domain via
-   `fly certs add`)
-7. Auto-deploys: `fly tokens create deploy` → save as the `FLY_API_TOKEN`
-   repository secret. Every push to `main` then deploys via
-   `.github/workflows/deploy.yml` (the job no-ops until the secret exists).
-8. Turn on daily Postgres snapshots (on by default for Fly Postgres — verify
-   with `fly postgres backup list`).
+5. From any device on your tailnet: `http://<tailscale-magicdns-name>:8080`.
+6. Auto-start on boot: enable Docker's restart policy or a systemd unit
+   running the compose command above, so the stack survives a host reboot.
 
 ## Manual operations
 
 | Task | Command |
 |---|---|
-| Deploy by hand | `fly deploy` |
-| Logs | `fly logs` |
-| Roll back | `fly releases` → `fly deploy --image <previous image ref>` |
-| Migrations by hand | `fly ssh console -C "alembic upgrade head"` |
-| psql into prod | `fly postgres connect -a <pg-app-name>` |
+| Redeploy after a code change | `docker compose -f docker-compose.selfhost.yml up -d --build` |
+| Logs | `docker compose -f docker-compose.selfhost.yml logs -f backend` |
+| Migrations by hand | `docker compose -f docker-compose.selfhost.yml exec backend alembic upgrade head` |
+| psql into the db | `docker compose -f docker-compose.selfhost.yml exec db psql -U postgres -d taggit` |
+| Stop everything | `docker compose -f docker-compose.selfhost.yml down` |
 
-## Prod-like local run
+## Local dev, full stack in containers
+
+`docker-compose.yml` also has an opt-in `full` profile that runs the same
+split frontend/backend containers locally against the local MinIO stand-in
+(`backend/.env`, not `.env.prod`) — useful to sanity-check the containerized
+build without touching real R2:
 
 ```sh
-cp backend/.env.example backend/.env   # fill Supabase + R2 values
-docker compose -f docker-compose.prod.yml up --build
-# whole app on http://localhost:8000
+docker compose --profile full up -d --build
+# frontend: http://localhost:8080
 ```
+
+Plain `docker compose up -d` (no profile) still brings up just the dev
+dependencies (`db`, `minio`, `minio-init`) for host-run `uv run uvicorn` /
+`pnpm dev`, unchanged.
